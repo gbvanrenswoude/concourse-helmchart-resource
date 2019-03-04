@@ -1,0 +1,70 @@
+#!/bin/bash
+set -e
+set -o pipefail
+
+exec 3>&1 # make stdout available as fd 3 for the result
+exec 1>&2 # redirect all output to stderr for logging
+
+source $(dirname $0)/common.sh
+
+payload=$(mktemp $TMPDIR/helm-chart-resource-request.XXXXXX)
+cat > $payload <&0
+
+setup_helm $payload
+
+chart=$(jq -r '.source.chart // ""' < $payload)
+dir=$(jq -r '.params.directory // false' < $payload)
+
+if [ -z "$chart" ]; then
+  echo "invalid payload (missing chart)"
+  exit 1
+fi
+
+if [ -z "$dir" ]; then
+  echo "invalid payload (missing directory, cannot find chart definition)"
+  exit 1
+fi
+
+cd $1
+cd $dir
+
+pwd
+ls -la
+
+helm package . # -d $1
+ls -la
+chart=$(echo $chart | cut -d'/' -f2- )
+CHART_NAME=$(ls -1 ${chart}-*.tgz)
+# CHART_NAME=${chart}.tgz
+# cd $1
+
+IFS=$'\n'
+for r in $repos; do
+  name=$(echo $r | jq -r '.name')
+  url=$(echo $r | jq -r '.url')
+  username=$(echo $r | jq -r '.username // ""')
+  password=$(echo $r | jq -r '.password // ""')
+
+  echo Uploading chart to helm repository $name $url
+  if [[ -n "$username" && -n "$password" ]]; then
+    curl -u${username}:${password} \
+         -T ./${CHART_NAME}                                  \
+        "${url}/${CHART_NAME}"
+    echo "Upload of ${CHART_NAME} to ${name} complete."
+  else
+    curl -T ./${CHART_NAME}                                  \
+        "${url}/${CHART_NAME}"
+  fi
+done
+
+# get the version uploaded. Since you upload this to multiple repositories, one helm search is enough in the last repository.
+echo "Getting latest chart version from the remote ${name}"
+helm repo update $name
+current_ver=$(helm search ${name}/${chart} | awk '{print $2}' | sed -n 2p)
+# there could be some more failsafes here...
+
+metadata=$(echo $chart | jq -R "{name: \"chart\", value: .}")
+jq -n "{
+  version: {version: $(echo $current_ver | jq -R .)},
+  metadata: [$metadata]
+}" >&3

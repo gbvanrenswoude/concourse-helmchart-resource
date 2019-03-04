@@ -1,0 +1,18 @@
+{"source":{
+  "chart": "incubator/fluentd-cloudwatch",
+  "repos": [
+    {
+      "name": "incubator",
+      "url": "https://kubernetes-charts-incubator.storage.googleapis.com"
+    }
+  ]
+},
+"params": {
+  "untar": "DEBUG",
+  "untardir": "",
+  "verify": "false"
+},
+  "version":{
+    "version":"0.7.0"
+    }
+  }

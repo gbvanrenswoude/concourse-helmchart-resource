@@ -1,0 +1,21 @@
+  {"source":{
+    "chart": "skodje",
+    "repos": [
+      {
+        "name": "cpt-helm-vr",
+        "url": "https://artifactory.prd.ss.aws.insim.biz/artifactory/cpt-helm-vr",
+        "username": "cpt-helm-npa-rw",
+        "password": "meuk"
+      },
+      {
+        "name": "b",
+        "url": "b.com",
+        "username": "b",
+        "password": "b"
+      }
+    ]
+  },
+  "params": {
+    "directory": "."
+  }
+    }
